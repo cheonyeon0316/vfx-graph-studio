@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101318">
+    <meta name="description" content="그래프 JSON을 브라우저에서 검증·렌더하고 현재 브라우저에 저장하는 VFX 작업실">
+    <title>JSON 그래프 스튜디오 — VFX Lab</title>
+    <link rel="stylesheet" href="graph-studio.css">
+    <script defer src="graph-renderer-core.js"></script>
+    <script defer src="graph-studio.js"></script>
+  </head>
+  <body>
+    <div class="graph-studio-page">
+      <header class="gs-topbar">
+        <a class="gs-brand" href="index.html" aria-label="JSON 그래프 스튜디오 홈"><span class="gs-brand-mark">✦</span><span>VFX<span class="gs-brand-accent">LAB</span></span></a>
+        <nav class="gs-nav" aria-label="작업 모드"><span aria-current="page">JSON 그래프</span></nav>
+        <span class="gs-privacy-pill"><i></i> 이 브라우저에만 저장</span>
+      </header>
+
+      <main class="gs-main">
+        <section class="gs-intro">
+          <div>
+            <p class="gs-eyebrow">LOCAL GRAPH WORKSHOP</p>
+            <h1>그래프를 붙여넣고 바로 확인하세요</h1>
+            <p>ChatGPT에서 만든 그래프 JSON을 붙여넣으면 외부 전송 없이 애니메이션으로 렌더합니다.</p>
+          </div>
+          <div class="gs-local-note"><span aria-hidden="true">◈</span><span><strong>개인 작업 공간</strong><small>저장한 효과는 이 브라우저 안에만 남습니다.</small></span></div>
+        </section>
+
+        <div class="gs-workgrid">
+          <section class="gs-panel gs-input-panel" aria-labelledby="gsInputHeading">
+            <div class="gs-panel-heading">
+              <div><p class="gs-eyebrow">01 / GRAPH JSON</p><h2 id="gsInputHeading">그래프 입력</h2></div>
+              <span class="gs-step-number">01</span>
+            </div>
+            <p class="gs-help"><code>pxf.graph@1</code> 또는 임베디드 PNG 프레임을 포함한 VFX Lab <code>schemaVersion: 3</code> JSON을 붙여넣거나 파일로 여세요. 여러 후보는 VFX Lab variations JSON으로 한 번에 열 수 있습니다.</p>
+            <label class="gs-visually-hidden" for="graphJsonInput">VFX 그래프 JSON</label>
+            <textarea id="graphJsonInput" class="gs-json-input" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder='{
+  "format": "pxf.graph@1",
+  "name": "분홍 타격 섬광",
+  "settings": { "size": 64, "frames": 24, "fps": 24, "loop": false },
+  "nodes": [],
+  "links": []
+}'></textarea>
+            <div class="gs-input-actions">
+              <label class="gs-button gs-button-quiet gs-file-button" for="graphJsonFile">파일 열기</label>
+              <input id="graphJsonFile" type="file" accept=".json,application/json" hidden>
+              <span class="gs-input-hint">최대 20MiB · 지원 노드는 아래 안내</span>
+              <button class="gs-button gs-button-primary" id="renderGraphButton" type="button">그래프 렌더</button>
+            </div>
+            <p class="gs-status" id="graphInputStatus" role="status" aria-live="polite">JSON을 입력하거나 파일을 열어 시작하세요.</p>
+            <div class="gs-error is-hidden" id="graphInputError" role="alert"></div>
+
+            <section class="gs-variations is-hidden" id="graphVariations" aria-labelledby="gsVariantsTitle">
+              <div class="gs-variation-heading"><div><p class="gs-eyebrow">VARIATIONS</p><h3 id="gsVariantsTitle">렌더 후보</h3></div><span id="graphVariationCount"></span></div>
+              <div class="gs-variation-list" id="graphVariationList" role="group" aria-label="렌더 후보 선택"></div>
+              <button class="gs-button gs-button-quiet gs-save-all is-hidden" id="saveAllVariations" type="button">후보 모두 저장</button>
+            </section>
+
+            <details class="gs-supported-nodes">
+              <summary>지원 노드와 입력 형식</summary>
+              <p>이 스튜디오는 아래 노드만 브라우저에서 렌더합니다. 지원하지 않는 노드가 있으면 그래프를 조용히 생략하지 않고 오류로 알려줍니다.</p>
+              <div class="gs-node-tags"><code>Shape</code><code>Stroke</code><code>Particles</code><code>Sprite</code><code>Repeat</code><code>Blend</code><code>Glow</code><code>Palette</code><code>Tint</code><code>Output</code></div>
+              <p>단일 그래프는 <code>pxf.graph@1</code> 또는 embedded PNG를 참조하는 <code>schemaVersion: 3</code> 형식, 후보 묶음은 <code>vfxlab.variations@1</code> 형식입니다. PXF <code>Sprite</code>는 PNG 시트 프레임을 <code>fps</code>/<code>loop</code> 설정으로 재생합니다. VFX Lab 그래프는 PNG 미리보기 레이어로 변환하며 저장·내보내기는 정규화된 PXF 형식입니다. 이미지는 JSON 안에 포함된 PNG만 읽습니다.</p>
+            </details>
+          </section>
+
+          <section class="gs-panel gs-preview-panel" aria-labelledby="gsPreviewHeading">
+            <div class="gs-panel-heading gs-preview-heading">
+              <div><p class="gs-eyebrow">02 / LIVE PREVIEW</p><h2 id="gsPreviewHeading">렌더 미리보기</h2></div>
+              <div class="gs-preview-meta"><span id="graphFormatBadge">대기 중</span><span id="graphNodeMeta"></span></div>
+            </div>
+            <div class="gs-stage" id="graphStage">
+              <div class="gs-empty-state" id="graphEmptyState"><span class="gs-empty-icon">✦</span><strong>효과가 여기에 나타납니다</strong><small>JSON을 입력하고 그래프 렌더를 눌러주세요.</small></div>
+              <canvas id="graphPreviewCanvas" aria-label="VFX 그래프 애니메이션 미리보기" class="is-hidden"></canvas>
+            </div>
+            <div class="gs-frame-controls">
+              <button class="gs-play-button" id="toggleGraphPlayback" type="button" aria-label="재생" disabled>▶</button>
+              <label class="gs-visually-hidden" for="graphFrameSlider">애니메이션 프레임</label>
+              <input id="graphFrameSlider" type="range" min="0" max="0" value="0" disabled>
+              <span class="gs-frame-counter" id="graphFrameCounter">— / —</span>
+            </div>
+            <div class="gs-effect-heading"><div><p class="gs-eyebrow">CURRENT EFFECT</p><h3 id="graphEffectName">효과 없음</h3><p id="graphEffectSettings">그래프를 렌더하면 길이와 프레임 수가 표시됩니다.</p></div><button class="gs-button gs-button-quiet" id="restartGraphPlayback" type="button" disabled>다시 재생</button></div>
+            <div class="gs-result-actions">
+              <button class="gs-button gs-button-primary" id="saveGraphButton" type="button" disabled>내 라이브러리에 저장</button>
+              <button class="gs-button gs-button-quiet" id="exportGraphPng" type="button" disabled>현재 프레임 PNG</button>
+              <button class="gs-button gs-button-quiet" id="exportGraphJson" type="button" disabled>JSON 내보내기</button>
+            </div>
+            <p class="gs-preview-footnote">애니메이션과 PNG는 이 브라우저에서 계산합니다. Unity 런타임 연동이나 전체 PXF 호환을 의미하지 않습니다.</p>
+          </section>
+
+          <aside class="gs-panel gs-library-panel" aria-labelledby="gsLibraryHeading">
+            <div class="gs-panel-heading">
+              <div><p class="gs-eyebrow">MY EFFECTS</p><h2 id="gsLibraryHeading">내 라이브러리</h2></div>
+              <span class="gs-library-count" id="graphLibraryCount">0</span>
+            </div>
+            <label class="gs-search-field"><span class="gs-visually-hidden">라이브러리 검색</span><input id="graphLibrarySearch" type="search" placeholder="이름 검색" autocomplete="off"></label>
+            <div class="gs-library-list" id="graphLibraryList" aria-live="polite"><p class="gs-library-empty">저장한 효과가 여기에 표시됩니다.</p></div>
+            <p class="gs-library-note">다른 기기와 자동 동기화되지 않습니다. 필요한 그래프는 JSON 파일로 백업하세요.</p>
+          </aside>
+        </div>
+      </main>
+      <footer class="gs-footer"><span>VFX LAB · JSON GRAPH STUDIO</span><span>브라우저에서 로컬 렌더링</span></footer>
+    </div>
+  </body>
+</html>
